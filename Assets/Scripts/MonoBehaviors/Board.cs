@@ -20,8 +20,6 @@ public class Board : MonoBehaviour
 
     private Hex[][] board; // NOTE: As a Hex board, this array is jagged. Odd rows are width, evens are width - 1.
 
-    
-
     #region Initialization
 
     public void Setup(HexClickDelegateHandler clickDelegate) {

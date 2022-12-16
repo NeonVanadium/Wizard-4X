@@ -12,9 +12,9 @@ public class GameMaster : MonoBehaviour
 {
     [SerializeField] Board boardPrefab;
 
-    [SerializeField] Unit unitPrefab;
+    [SerializeField] Player playerPrefab;
 
-    [SerializeField] Camera camera;
+    [SerializeField] Camera gameCamera;
 
     [SerializeField] int boardWidth;
     
@@ -24,15 +24,23 @@ public class GameMaster : MonoBehaviour
 
     [SerializeField] int numberOfContinents;
 
+    [SerializeField] int maxContinentWidth;
+
+    [SerializeField] int minContinentWidth;
+
     private OutlineManager outlineManager;
+
+    private PieceFactory pieceFactory;
 
     private HexClickDelegateHandler clickHandler;
 
-    private Unit[] players;
+    private Player[] players;
 
     private int turnIndex = -1;
 
-    private Unit activePlayer { get => players[turnIndex]; }
+    private Player activePlayer { get => players[turnIndex]; }
+
+    private Player humanPlayer { get => players[0]; }
 
     private List<Hex> activePlayerAvailableHexes;
 
@@ -42,37 +50,44 @@ public class GameMaster : MonoBehaviour
 
     private void Awake()
     {
-        clickHandler = new HexClickDelegateHandler();
-        clickHandler.onClick += ValidateAndMakeMove;
-        outlineManager = this.GetComponent<OutlineManager>();
+        SetupHelperObjects();
         SetupBoard();
         SetupPlayers();
         SetupCamera();
     }
 
+    private void SetupHelperObjects()
+    {
+        clickHandler = new HexClickDelegateHandler();
+        clickHandler.onClick += ValidateAndMakeMove;
+        outlineManager = this.GetComponent<OutlineManager>();
+        pieceFactory = this.GetComponent<PieceFactory>();
+    }
     private void SetupBoard()
     {
         board = Instantiate(boardPrefab, Vector3.zero, Quaternion.identity);
         board.Setup(clickHandler); // just gives the board the click handler
-        board.Generate(new MapSpecification(boardWidth, boardHeight, Mathf.Min(boardWidth, boardHeight) / 3, 1, numberOfContinents));
+        // NOTE: A reasonable max width is Mathf.Min(boardWidth, boardHeight) / 3
+        board.Generate(new MapSpecification(boardWidth, boardHeight, maxContinentWidth, minContinentWidth, numberOfContinents));
     }
 
     private void SetupPlayers()
     {
-        players = new Unit[numPlayers];
+        players = new Player[numPlayers];
         for (int i = 0; i < numPlayers; i++)
         {
-            players[i] = Instantiate(unitPrefab, Vector3.zero, Quaternion.identity);
-            players[i].color = UnityEngine.Random.ColorHSV();
-            board.GetTileAt(boardHeight / 2, i * (boardWidth / (numPlayers + 1))).SetObject(players[i]);
+            players[i] = ScriptableObject.CreateInstance<Player>();
+            players[i].SetMainPiece((Unit) pieceFactory.Make(PieceType.WIZARD));
+            players[i].mainPiece.color = UnityEngine.Random.ColorHSV();
+            board.PlaceToken(players[i].mainPiece, boardHeight / 2, i * (boardWidth / (numPlayers + 1)));
         }
         NextTurn();
     }
 
     private void SetupCamera()
     {
-        camera.transform.parent = players[0].transform;
-        camera.transform.localPosition = new Vector3(0, 10, -11);
+        gameCamera.transform.parent = players[0].mainPiece.transform;
+        gameCamera.transform.localPosition = new Vector3(0, 10, -11);
     }
 
     private void Start()
@@ -87,9 +102,9 @@ public class GameMaster : MonoBehaviour
     /// <summary>
     /// Returns true if it is the human player's turn.
     /// </summary>
-    private bool IsPlayerTurn()
+    private bool IsHumanPlayerTurn()
     {
-        return turnIndex == 0;
+        return players[turnIndex] == humanPlayer;
     }
 
     /// <summary>
@@ -102,21 +117,43 @@ public class GameMaster : MonoBehaviour
     {
         
         if (IsTargetValidForPlayer(row, col, activePlayer)) 
-        { 
-            
-            int cost = GetMinEnergyCostForMove(
-                board.GetTileAt(activePlayer.currentHex.row, activePlayer.currentHex.column),
+        {
+            Unit activePiece = activePlayer.activePiece;
+
+            if (activePlayer.interactionMode == InteractionMode.Move)
+            {
+                int cost = GetMinEnergyCostForMove(
+                board.GetTileAt(activePiece.currentHex.row, activePiece.currentHex.column),
                 board.GetTileAt(row, col));
 
-            activePlayer.remainingEnergy -= cost;
+                activePiece.remainingEnergy -= cost;
 
-            PlaceUnit(row, col, activePlayer);
 
-            if (activePlayer.remainingEnergy <= 0)
+                PlaceUnit(row, col, activePiece);
+            }
+            else
             {
-                if (activePlayer.remainingEnergy < 0)
-                    print("Active player had energy less than zero at round end. Was this intentional?");
+                int TEMP_PLACE_COST = 3;
+                if (activePiece.remainingEnergy >= TEMP_PLACE_COST)
+                {
+                    board.PlaceToken(pieceFactory.Make(PieceType.TOWER), row, col);
+                    activePiece.remainingEnergy -= TEMP_PLACE_COST; // TEMP for testing.
+                }
+                else
+                {
+                    print("Not enough energy to place that structure.");
+                }
+                
+            }
+            
+
+            if (activePiece.remainingEnergy == 0)
+            {
                 NextTurn();
+            }
+            else if (activePiece.remainingEnergy < 0)
+            {
+                throw new Exception("Player ended round with less than zero energy.");
             }
             else
             {
@@ -167,13 +204,13 @@ public class GameMaster : MonoBehaviour
     private void PlaceUnit(int row, int col, Unit u)
     {
         board.PlaceToken(u, row, col);
-        board.DiscoveryBlorp(row, col, activePlayer.sight);
+        board.DiscoveryBlorp(row, col, u.sight);
     }
 
-    private bool IsTargetValidForPlayer(int row, int col, Unit u)
+    private bool IsTargetValidForPlayer(int row, int col, Player p)
     {
         // was the clicked hex a valid move for the current player?
-        return activePlayer.currentHex == null || board.GetMovesBlorp(u).Contains(board.GetTileAt(row, col));
+        return p.mainPiece.currentHex == null || board.GetMovesBlorp(p.mainPiece).Contains(board.GetTileAt(row, col));
     }
 
     private void NextTurn()
@@ -181,12 +218,12 @@ public class GameMaster : MonoBehaviour
         turnIndex = (turnIndex + 1) % players.Length;
 
         // should be removed once tiles aren't disabled but filtered before discovery
-        board.DiscoveryBlorp(activePlayer.currentHex.row, activePlayer.currentHex.column);
+        board.DiscoveryBlorp(activePlayer.mainPiece.currentHex.row, activePlayer.mainPiece.currentHex.column);
 
         activePlayer.StartTurn(); // Sets up this unit for their turn.
         GetAndMarkAvailableMoves();
 
-        if (!IsPlayerTurn())
+        if (!IsHumanPlayerTurn())
         {
             HaveAITakeTurn();
         }
@@ -199,7 +236,7 @@ public class GameMaster : MonoBehaviour
     /// </summary>
     public void ManualEndTurn()
     {
-        if (IsPlayerTurn())
+        if (IsHumanPlayerTurn())
         {
             NextTurn();
         }
@@ -211,12 +248,12 @@ public class GameMaster : MonoBehaviour
         {
             outlineManager.ClearAllOutlines();
         }
-        activePlayerAvailableHexes = board.GetMovesBlorp(activePlayer);
+        activePlayerAvailableHexes = board.GetMovesBlorp(activePlayer.activePiece);
         if (activePlayerAvailableHexes.Count == 0)
         {
             NextTurn(); // no moves found, pass to next
         }
-        else if (IsPlayerTurn())
+        else if (IsHumanPlayerTurn())
         {
             // only mark on the player's turn.
             foreach (Hex h in activePlayerAvailableHexes)
@@ -239,8 +276,21 @@ public class GameMaster : MonoBehaviour
         }
 
         Hex destination = AIPlayer.makeMove(activePlayerAvailableHexes);
-        PlaceUnit(destination.row, destination.column, activePlayer);
+        PlaceUnit(destination.row, destination.column, activePlayer.activePiece);
         NextTurn();
+    }
+
+    #endregion
+
+    #region UI Functionality
+
+    /// <summary>
+    /// Probably temporary until the UI functions
+    /// have a better home.
+    /// </summary>
+    public void ChangePlayerInteractionMode()
+    {
+        humanPlayer.SwitchInteractionMode();
     }
 
     #endregion
