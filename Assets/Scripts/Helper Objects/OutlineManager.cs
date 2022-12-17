@@ -7,7 +7,7 @@ public class OutlineManager : MonoBehaviour
 
     [SerializeField] Token HexOutlinePrefab;
 
-    private Color moveColor = Color.cyan;
+    private Color moveColor = Color.cyan; // color of the move markers
 
     private List<Token> outlines = new List<Token>();
 
@@ -24,7 +24,7 @@ public class OutlineManager : MonoBehaviour
 
     public Token CreateOutline()
     {
-        return CreateOutline(Color.cyan);
+        return CreateOutline(moveColor);
     }
 
     public void ClearAllOutlines()
@@ -38,7 +38,7 @@ public class OutlineManager : MonoBehaviour
 
     public void ClearMoveMarkers()
     {
-        System.Predicate<Token> pred = new System.Predicate<Token>((Token t) => t.color == Color.cyan);
+        System.Predicate<Token> pred = new System.Predicate<Token>((Token t) => t.color == moveColor);
         foreach (Token token in outlines)
         {
             if (pred(token))

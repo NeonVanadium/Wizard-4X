@@ -115,47 +115,24 @@ public class GameMaster : MonoBehaviour
     /// </summary>
     private void ValidateAndMakeMove(int row, int col)
     {
-        
         if (IsTargetValidForPlayer(row, col, activePlayer)) 
         {
-            Unit activePiece = activePlayer.activePiece;
-
+            // Valid. Perform the action.
             if (activePlayer.interactionMode == InteractionMode.Move)
             {
-                int cost = GetMinEnergyCostForMove(
-                board.GetTileAt(activePiece.currentHex.row, activePiece.currentHex.column),
-                board.GetTileAt(row, col));
-
-                activePiece.remainingEnergy -= cost;
-
-
-                PlaceUnit(row, col, activePiece);
+                MoveTokenAction(row, col);
             }
             else
             {
-                int TEMP_PLACE_COST = 3;
-                if (activePiece.remainingEnergy >= TEMP_PLACE_COST)
-                {
-                    board.PlaceToken(pieceFactory.Make(PieceType.TOWER), row, col);
-                    foreach (Hex h in board.GetAdjacentTiles(row, col))
-                    {
-                        h.SetObject(outlineManager.CreateOutline(activePlayer.color), 0.5f);
-                    }
-                    activePiece.remainingEnergy -= TEMP_PLACE_COST; // TEMP for testing.
-                }
-                else
-                {
-                    print("Not enough energy to place that structure.");
-                }
-                
+                PlaceStructureAction(row, col);
             }
-            
 
-            if (activePiece.remainingEnergy == 0)
+            // Move to next turn if no energy left, or remark possible moves.
+            if (activePlayer.activePiece.remainingEnergy == 0)
             {
                 NextTurn();
             }
-            else if (activePiece.remainingEnergy < 0)
+            else if (activePlayer.activePiece.remainingEnergy < 0)
             {
                 throw new Exception("Player ended round with less than zero energy.");
             }
@@ -163,6 +140,34 @@ public class GameMaster : MonoBehaviour
             {
                 GetAndMarkAvailableMoves();
             }
+        }
+    }
+
+    private void MoveTokenAction(int row, int col)
+    {
+        int cost = GetMinEnergyCostForMove(activePlayer.activePiece.currentHex, board.GetTileAt(row, col));
+
+        activePlayer.activePiece.remainingEnergy -= cost;
+
+        PlaceUnit(row, col, activePlayer.activePiece);
+    }
+
+    private void PlaceStructureAction(int row, int col)
+    {
+        // NOTE: Implementation still temporary.
+        int TEMP_PLACE_COST = 3;
+        if (activePlayer.activePiece.remainingEnergy >= TEMP_PLACE_COST)
+        {
+            board.PlaceToken(pieceFactory.Make(PieceType.TOWER), row, col);
+            foreach (Hex h in board.GetAdjacentTiles(row, col))
+            {
+                h.SetObject(outlineManager.CreateOutline(activePlayer.color), 0.5f);
+            }
+            activePlayer.activePiece.remainingEnergy -= TEMP_PLACE_COST;
+        }
+        else
+        {
+            print("Not enough energy to place that structure.");
         }
     }
 
