@@ -77,8 +77,8 @@ public class GameMaster : MonoBehaviour
         for (int i = 0; i < numPlayers; i++)
         {
             players[i] = ScriptableObject.CreateInstance<Player>();
+            players[i].color = UnityEngine.Random.ColorHSV();
             players[i].SetMainPiece((Unit) pieceFactory.Make(PieceType.WIZARD));
-            players[i].mainPiece.color = UnityEngine.Random.ColorHSV();
             board.PlaceToken(players[i].mainPiece, boardHeight / 2, i * (boardWidth / (numPlayers + 1)));
         }
         NextTurn();
@@ -137,6 +137,10 @@ public class GameMaster : MonoBehaviour
                 if (activePiece.remainingEnergy >= TEMP_PLACE_COST)
                 {
                     board.PlaceToken(pieceFactory.Make(PieceType.TOWER), row, col);
+                    foreach (Hex h in board.GetAdjacentTiles(row, col))
+                    {
+                        h.SetObject(outlineManager.CreateOutline(activePlayer.color), 0.5f);
+                    }
                     activePiece.remainingEnergy -= TEMP_PLACE_COST; // TEMP for testing.
                 }
                 else
@@ -246,7 +250,7 @@ public class GameMaster : MonoBehaviour
     {
         if (activePlayerAvailableHexes != null)
         {
-            outlineManager.ClearAllOutlines();
+            outlineManager.ClearMoveMarkers();
         }
         activePlayerAvailableHexes = board.GetMovesBlorp(activePlayer.activePiece);
         if (activePlayerAvailableHexes.Count == 0)

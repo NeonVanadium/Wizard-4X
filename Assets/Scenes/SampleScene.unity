@@ -160,9 +160,9 @@ MonoBehaviour:
   boardWidth: 30
   boardHeight: 20
   numPlayers: 3
-  numberOfContinents: 4
-  maxContinentWidth: 3
-  minContinentWidth: 1
+  numberOfContinents: 1
+  maxContinentWidth: 10
+  minContinentWidth: 2
 --- !u!4 &595287491
 Transform:
   m_ObjectHideFlags: 0

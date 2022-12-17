@@ -7,13 +7,24 @@ public class OutlineManager : MonoBehaviour
 
     [SerializeField] Token HexOutlinePrefab;
 
+    private Color moveColor = Color.cyan;
+
     private List<Token> outlines = new List<Token>();
+
+    public Token CreateOutline(Color c)
+    {
+        Token newOutline = Instantiate(HexOutlinePrefab);
+        LineRenderer rendy = newOutline.GetComponent<LineRenderer>();
+        rendy.startColor = c;
+        rendy.endColor = c;
+        newOutline.color = c;
+        outlines.Add(newOutline);
+        return newOutline;
+    }
 
     public Token CreateOutline()
     {
-        Token newOutline = Instantiate(HexOutlinePrefab);
-        outlines.Add(newOutline);
-        return newOutline;
+        return CreateOutline(Color.cyan);
     }
 
     public void ClearAllOutlines()
@@ -23,6 +34,17 @@ public class OutlineManager : MonoBehaviour
             Destroy(token.gameObject);
         }
         outlines.Clear();
+    }
+
+    public void ClearMoveMarkers()
+    {
+        System.Predicate<Token> pred = new System.Predicate<Token>((Token t) => t.color == Color.cyan);
+        foreach (Token token in outlines)
+        {
+            if (pred(token))
+                Destroy(token.gameObject);
+        }
+        outlines.RemoveAll(pred);
     }
 
 }
