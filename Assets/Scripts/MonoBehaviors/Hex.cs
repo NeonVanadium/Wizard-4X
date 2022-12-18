@@ -1,7 +1,18 @@
-using System;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
+/// <summary>
+/// This class represents a hex, also
+/// called a Tile. It is one space on
+/// the game board.
+/// 
+/// The hex knows its own position and 
+/// holds references to the various 
+/// objects that are "on" it.
+/// 
+/// The hex also serves as the point of control
+/// for the visibility of all tokens on it.
+/// </summary>
 public class Hex : MonoBehaviour
 {
     public int row { get => GetRow(); }
@@ -9,25 +20,21 @@ public class Hex : MonoBehaviour
 
     public TileType tileType { get; private set; }
 
-    public bool discovered { get; private set; }
+    private  List<Token> tokens = new List<Token>(); // the tokens on this tile.
 
-    public bool isLand { get; private set; }
+    private bool inPlayerSight; // if this tile is actively visible by the human player. Used for rendering.
 
-    public bool initialized { get; private set; } = false;
+    public bool isLand { get => tileType.isLand; }
 
     private HexClickDelegateHandler clickDelegate;
+
+    private Token moveOutline;
 
     #region Initialization
     void Awake()
     {
-        if (!initialized) {
-            this.name = this.ToString();
-            Discover(false);
-        }
-        else
-        {
-            throw new Exception($"{this.name} is already initialized.");
-        }
+        this.name = this.ToString();
+        Discover(false);
     }
 
     public void Init(HexClickDelegateHandler clickDelegate)
@@ -38,15 +45,20 @@ public class Hex : MonoBehaviour
     public void SetType(TileType tileType)
     {
         this.tileType = tileType;
-        this.transform.localScale = new Vector3(1, tileType.height, 1);
-        this.SetColor();
+        transform.localScale = new Vector3(1, tileType.height, 1);
+        SetColor();
     }
     #endregion
 
     #region State Control
-    public void Discover(bool val = true)
+
+    /// <summary>
+    /// Turns the tile's renderer on. Should
+    /// only be called when a human player sees the tile.
+    /// </summary>
+    /// <param name="val"></param>
+    private void Discover(bool val = true)
     {
-        discovered = val;
         Show(val);
     }
 
@@ -62,7 +74,14 @@ public class Hex : MonoBehaviour
         // is this a Token we're placing?
         if (obj is Token)
         {
-            ((Token)obj).currentHex = this;
+            Token t = (Token)obj;
+            if (t.currentHex)
+            {
+                t.currentHex.TakeOff(t);
+            }
+            t.currentHex = this;
+            t.Show(inPlayerSight);
+            this.tokens.Add(t);
         }
     }
 
@@ -74,7 +93,26 @@ public class Hex : MonoBehaviour
     {
         foreach (Transform child in transform)
         {
-            child.gameObject.SetActive(val);
+            //child.gameObject.SetActive(val);
+            child.GetComponent<Renderer>().enabled = val;
+        }
+    }
+
+    public void SetInPlayerSight(bool val)
+    {
+        Discover();
+        inPlayerSight = val;
+        ShowHideTokens();
+    }
+
+    /// <summary>
+    /// Shows or hides this hex's tokens, based on the visible flag.
+    /// </summary>
+    private void ShowHideTokens()
+    {
+        foreach (Token t in tokens)
+        {
+            t.Show(inPlayerSight);
         }
     }
 
@@ -99,10 +137,17 @@ public class Hex : MonoBehaviour
     {
         SetColor(tileType.color);
     }
+
+    public void TakeOff(Token t)
+    {
+        if (tokens.Contains(t))
+        {
+            tokens.Remove(t);
+        }
+    }
     #endregion
 
-
-    #region User Interaction
+    #region Mouse Interaction
     void OnMouseDown()
     {
         clickDelegate.onClick.Invoke(GetRow(), GetColumn());
@@ -110,7 +155,7 @@ public class Hex : MonoBehaviour
 
     private void OnMouseEnter()
     {
-        SetColor(Color.clear);
+        SetColor(Color.white);
     }
 
     private void OnMouseExit()

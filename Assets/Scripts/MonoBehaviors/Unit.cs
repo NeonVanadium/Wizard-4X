@@ -13,8 +13,6 @@ public class Unit : Token {
 
     public int remainingEnergy { get; set; }
 
-    public int sight { get => 2; }
-
     private int GetMaxEnergy()
     {
         return 5;

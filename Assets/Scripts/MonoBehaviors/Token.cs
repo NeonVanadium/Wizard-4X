@@ -3,22 +3,37 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// A token is anything that is placed on a hex.
+/// A token is any game piece that is placed on a hex.
 /// 
-/// Units, structures, tile outlines, etc.
+/// Units, structures, etc.
 /// </summary>
 public class Token : MonoBehaviour
 {
     public Hex currentHex { get; set; }
 
-    public Color color { get; set; }
+    public Color color { get; private set; }
 
-    public void Start()
+    public int sight { get => 2; } // how far this token can see
+
+    private MeshRenderer rendy;
+
+    public void Awake()
     {
-        MeshRenderer rendy = this.GetComponent<MeshRenderer>();
+        rendy = this.GetComponent<MeshRenderer>();
 
-        if (rendy != null)
-            rendy.material.color = color;
-
+        Show(false);
     }
+
+    public void SetColor(Color c)
+    {
+        color = c;
+        rendy.material.color = color;
+    }
+
+    public void Show(bool val = true)
+    {
+        rendy.enabled = val;
+    }
+
+
 }

@@ -10,9 +10,6 @@ using UnityEngine;
 /// </summary>
 public class GameMaster : MonoBehaviour
 {
-    [SerializeField] Board boardPrefab;
-
-    [SerializeField] Player playerPrefab;
 
     [SerializeField] Camera gameCamera;
 
@@ -27,6 +24,8 @@ public class GameMaster : MonoBehaviour
     [SerializeField] int maxContinentWidth;
 
     [SerializeField] int minContinentWidth;
+
+    private Board board;
 
     private OutlineManager outlineManager;
 
@@ -43,8 +42,6 @@ public class GameMaster : MonoBehaviour
     private Player humanPlayer { get => players[0]; }
 
     private List<Hex> activePlayerAvailableHexes;
-
-    private Board board;
 
     #region Initialization
 
@@ -65,7 +62,7 @@ public class GameMaster : MonoBehaviour
     }
     private void SetupBoard()
     {
-        board = Instantiate(boardPrefab, Vector3.zero, Quaternion.identity);
+        board = GetComponent<Board>();
         board.Setup(clickHandler); // just gives the board the click handler
         // NOTE: A reasonable max width is Mathf.Min(boardWidth, boardHeight) / 3
         board.Generate(new MapSpecification(boardWidth, boardHeight, maxContinentWidth, minContinentWidth, numberOfContinents));
@@ -76,7 +73,7 @@ public class GameMaster : MonoBehaviour
         players = new Player[numPlayers];
         for (int i = 0; i < numPlayers; i++)
         {
-            players[i] = ScriptableObject.CreateInstance<Player>();
+            players[i] = (i == 0) ? ScriptableObject.CreateInstance<Player>() : ScriptableObject.CreateInstance<AIPlayer>();
             players[i].color = UnityEngine.Random.ColorHSV();
             players[i].SetMainPiece((Unit) pieceFactory.Make(PieceType.WIZARD));
             board.PlaceToken(players[i].mainPiece, boardHeight / 2, i * (boardWidth / (numPlayers + 1)));
@@ -154,11 +151,14 @@ public class GameMaster : MonoBehaviour
 
     private void PlaceStructureAction(int row, int col)
     {
-        // NOTE: Implementation still temporary.
+        // NOTE: Implementation still temporary. Probably 
+        // shouldn't be in the manager anyway.
         int TEMP_PLACE_COST = 3;
         if (activePlayer.activePiece.remainingEnergy >= TEMP_PLACE_COST)
         {
-            board.PlaceToken(pieceFactory.Make(PieceType.TOWER), row, col);
+            Token structure = pieceFactory.Make(PieceType.TOWER);
+            board.PlaceToken(structure, row, col);
+            activePlayer.pieces.Add(structure);
             foreach (Hex h in board.GetAdjacentTiles(row, col))
             {
                 h.SetObject(outlineManager.CreateOutline(activePlayer.color), 0.5f);
@@ -213,23 +213,25 @@ public class GameMaster : MonoBehaviour
     private void PlaceUnit(int row, int col, Unit u)
     {
         board.PlaceToken(u, row, col);
-        board.DiscoveryBlorp(row, col, u.sight);
+        board.VisionBlorp(activePlayer);
     }
 
     private bool IsTargetValidForPlayer(int row, int col, Player p)
     {
         // was the clicked hex a valid move for the current player?
-        return p.mainPiece.currentHex == null || board.GetMovesBlorp(p.mainPiece).Contains(board.GetTileAt(row, col));
+        return p.mainPiece.currentHex == null || activePlayerAvailableHexes.Contains(board.GetTileAt(row, col));
     }
 
     private void NextTurn()
     {
+        humanPlayer.ResetSeen();
+
         turnIndex = (turnIndex + 1) % players.Length;
 
-        // should be removed once tiles aren't disabled but filtered before discovery
-        board.DiscoveryBlorp(activePlayer.mainPiece.currentHex.row, activePlayer.mainPiece.currentHex.column);
-
         activePlayer.StartTurn(); // Sets up this unit for their turn.
+
+        board.VisionBlorp(activePlayer);
+
         GetAndMarkAvailableMoves();
 
         if (!IsHumanPlayerTurn())
@@ -257,7 +259,7 @@ public class GameMaster : MonoBehaviour
         {
             outlineManager.ClearMoveMarkers();
         }
-        activePlayerAvailableHexes = board.GetMovesBlorp(activePlayer.activePiece);
+        activePlayerAvailableHexes = board.GetMovesBlorp(activePlayer);
         if (activePlayerAvailableHexes.Count == 0)
         {
             NextTurn(); // no moves found, pass to next
@@ -281,10 +283,10 @@ public class GameMaster : MonoBehaviour
     {
         if (activePlayerAvailableHexes == null)
         {
-            throw new System.Exception("Tried to have the AI take a turn without setting its possible moves first.");
+            throw new Exception("Tried to have the AI take a turn without setting its possible moves first.");
         }
 
-        Hex destination = AIPlayer.makeMove(activePlayerAvailableHexes);
+        Hex destination = ((AIPlayer)activePlayer).makeMove(activePlayerAvailableHexes);
         PlaceUnit(destination.row, destination.column, activePlayer.activePiece);
         NextTurn();
     }

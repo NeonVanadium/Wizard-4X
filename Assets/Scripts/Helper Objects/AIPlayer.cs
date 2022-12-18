@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AIPlayer
+public class AIPlayer : Player
 {
     /// <summary>
     /// Presumably temporary. Takes in a list of valid hexes,
@@ -10,8 +10,7 @@ public class AIPlayer
     /// </summary>
     /// <param name="options"></param>
     /// <returns>The hex chosen as its destination.</returns>
-    public static Hex makeMove(List<Hex> options) 
-        // temporarily static
+    public Hex makeMove(List<Hex> options) 
     {
         int choice = Random.Range(0, options.Count);
 

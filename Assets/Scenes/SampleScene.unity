@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 595287490}
   - component: {fileID: 595287492}
   - component: {fileID: 595287494}
+  - component: {fileID: 595287493}
   m_Layer: 0
   m_Name: GameMaster
   m_TagString: Untagged
@@ -154,8 +155,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15535dd24eabdc34a8366984e30a3030, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boardPrefab: {fileID: 1768678261195278512, guid: be0b4889c1134cd41baeb0fbb9034cdb, type: 3}
-  playerPrefab: {fileID: 0}
   gameCamera: {fileID: 963194227}
   boardWidth: 30
   boardHeight: 20
@@ -191,7 +190,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 083bc977e247db64a80225a799ead71e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  HexOutlinePrefab: {fileID: 1924717706146227875, guid: 2408bb7e950dc084581d0d0bbe0f3973, type: 3}
+  HexOutlinePrefab: {fileID: -3587819231910192636, guid: 2408bb7e950dc084581d0d0bbe0f3973, type: 3}
+--- !u!114 &595287493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 595287489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cc56401d1f5bf0428c4b063fe833deb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hexPrefab: {fileID: -5069440768583555413, guid: 974fbb299078e494cb38817fa917d0cc, type: 3}
 --- !u!114 &595287494
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -482,7 +494,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 100
   field of view: 60
   orthographic: 1
   orthographic size: 5

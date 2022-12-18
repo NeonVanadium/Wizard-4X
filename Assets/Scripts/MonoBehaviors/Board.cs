@@ -124,22 +124,41 @@ public class Board : MonoBehaviour
         this.GetTileAt(row, col).SetObject(t);
     }
 
-    public void DiscoveryBlorp(int row, int col, int range = 2)
+    public void VisionBlorp(Player p)
     {
-        board[row][col].Discover();
-        if (range > 0)
+        Hex startHex; 
+
+        foreach (Token t in p.pieces)
         {
-            foreach (Hex hex in GetAdjacentTiles(row, col))
+            startHex = t.currentHex;
+            VisionBlorpHelper(startHex.row, startHex.column, t.sight, p);
+        }
+
+        
+    }
+
+    private void VisionBlorpHelper(int row, int col, int range, Player p)
+    {
+        Hex curHex = GetTileAt(row, col);
+        //p.DiscoverHex(curHex);
+        p.SeeHex(curHex);
+
+        range -= 1;
+
+        if (range >= 0)
+        {
+            foreach (Hex hex in GetAdjacentTiles(curHex))
             {
-                DiscoveryBlorp(hex.row, hex.column, range - 1);
+                VisionBlorpHelper(hex.row, hex.column, range, p);
             }
         }
+        
     }
     #endregion
 
     #region Board Accessors
 
-    public List<Hex> GetMovesBlorp(int row, int col, int energy)
+    public List<Hex> GetMovesBlorp(int row, int col, int energy, Player p)
     {
         List<Hex> moves = new List<Hex>();
 
@@ -151,8 +170,8 @@ public class Board : MonoBehaviour
 
         foreach (Hex hex in GetAdjacentTiles(row, col))
         {
-            if (hex.discovered)
-                GetMovesBlorpHelper(hex.row, hex.column, energy, moves);
+            if (p.HasDiscoveredHex(hex))
+                GetMovesBlorpHelper(hex.row, hex.column, energy, moves, p);
         }
 
 
@@ -161,12 +180,13 @@ public class Board : MonoBehaviour
         return moves;
     }
 
-    public List<Hex> GetMovesBlorp(Unit u)
+    public List<Hex> GetMovesBlorp(Player p)
     {
-        return GetMovesBlorp(u.currentHex.row, u.currentHex.column, u.remainingEnergy);
+        Unit u = p.activePiece;
+        return GetMovesBlorp(u.currentHex.row, u.currentHex.column, u.remainingEnergy, p);
     }
 
-    private void GetMovesBlorpHelper(int row, int col, int energy, List<Hex> moves)
+    private void GetMovesBlorpHelper(int row, int col, int energy, List<Hex> moves, Player p)
     {
         
         energy -= board[row][col].tileType.cost;
@@ -177,8 +197,8 @@ public class Board : MonoBehaviour
         if (energy > 0)
             foreach (Hex hex in GetAdjacentTiles(row, col))
             {
-                if (!moves.Contains(hex) && hex.discovered)
-                    GetMovesBlorpHelper(hex.row, hex.column, energy, moves);
+                if (!moves.Contains(hex) && p.HasDiscoveredHex(hex))
+                    GetMovesBlorpHelper(hex.row, hex.column, energy, moves, p);
             }
     }
 
