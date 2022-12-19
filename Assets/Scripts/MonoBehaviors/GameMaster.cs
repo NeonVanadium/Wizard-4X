@@ -31,7 +31,9 @@ public class GameMaster : MonoBehaviour
 
     private PieceFactory pieceFactory;
 
-    private HexClickDelegateHandler clickHandler;
+    private HexDelegates hexDelegates;
+
+    [SerializeField] private UI uiManager;
 
     private Player[] players;
 
@@ -55,15 +57,16 @@ public class GameMaster : MonoBehaviour
 
     private void SetupHelperObjects()
     {
-        clickHandler = new HexClickDelegateHandler();
-        clickHandler.onClick += ValidateAndMakeMove;
+        hexDelegates = new HexDelegates();
+        hexDelegates.onClick += ValidateAndMakeMove;
+        hexDelegates.playerSighted += (Player p) => { if (!humanPlayer.HasMetPlayer(p)) { humanPlayer.MeetPlayer(p); uiManager.ShowPanel(); } };
         outlineManager = this.GetComponent<OutlineManager>();
         pieceFactory = this.GetComponent<PieceFactory>();
     }
     private void SetupBoard()
     {
         board = GetComponent<Board>();
-        board.Setup(clickHandler); // just gives the board the click handler
+        board.Setup(hexDelegates); // just gives the board the delegate wrapper.
         // NOTE: A reasonable max width is Mathf.Min(boardWidth, boardHeight) / 3
         board.Generate(new MapSpecification(boardWidth, boardHeight, maxContinentWidth, minContinentWidth, numberOfContinents));
     }
@@ -74,7 +77,7 @@ public class GameMaster : MonoBehaviour
         for (int i = 0; i < numPlayers; i++)
         {
             players[i] = (i == 0) ? ScriptableObject.CreateInstance<Player>() : ScriptableObject.CreateInstance<AIPlayer>();
-            players[i].color = UnityEngine.Random.ColorHSV();
+            players[i].Setup(i, numPlayers, UnityEngine.Random.ColorHSV());
             players[i].SetMainPiece((Unit) pieceFactory.Make(PieceType.WIZARD));
             board.PlaceToken(players[i].mainPiece, boardHeight / 2, i * (boardWidth / (numPlayers + 1)));
         }
@@ -85,12 +88,6 @@ public class GameMaster : MonoBehaviour
     {
         gameCamera.transform.parent = players[0].mainPiece.transform;
         gameCamera.transform.localPosition = new Vector3(0, 10, -11);
-    }
-
-    private void Start()
-    {
-        //camera.transform.position = new Vector3(boardWidth / 2, 10, -boardHeight);
-        clickHandler.onClick(boardHeight / 2, boardWidth / 2);
     }
     #endregion
 
@@ -158,7 +155,7 @@ public class GameMaster : MonoBehaviour
         {
             Token structure = pieceFactory.Make(PieceType.TOWER);
             board.PlaceToken(structure, row, col);
-            activePlayer.pieces.Add(structure);
+            activePlayer.AddPiece(structure);
             foreach (Hex h in board.GetAdjacentTiles(row, col))
             {
                 h.SetObject(outlineManager.CreateOutline(activePlayer.color), 0.5f);

@@ -14,7 +14,7 @@ public class Board : MonoBehaviour
 
     private MapSpecification mapSpec;
 
-    private HexClickDelegateHandler clickDelegate;
+    private HexDelegates hexDelegates;
 
     private int HexWidth; // the width of one individual hex.
 
@@ -22,7 +22,7 @@ public class Board : MonoBehaviour
 
     #region Initialization
 
-    public void Setup(HexClickDelegateHandler clickDelegate) {
+    public void Setup(HexDelegates hexDelegates) {
         foreach (Transform child in hexPrefab.transform)
         {
             // there's for sure a better way to just get the first one
@@ -30,7 +30,7 @@ public class Board : MonoBehaviour
             HexWidth = (int)child.lossyScale.x;
             break;
         }
-        this.clickDelegate = clickDelegate;
+        this.hexDelegates = hexDelegates;
     }
 
     private void validateParameters()
@@ -76,7 +76,7 @@ public class Board : MonoBehaviour
 
                 board[row][col] = Instantiate(hexPrefab, new Vector3(col - offset, 0, row), Quaternion.identity);
 
-                board[row][col].Init(clickDelegate);
+                board[row][col].Init(hexDelegates);
 
                 board[row][col].SetType(TileType.OCEAN);
             }
@@ -88,14 +88,12 @@ public class Board : MonoBehaviour
     private void Terrainify()
     {
         // the width of the board in which exists a single continent
-        int continentSpaceWidth = (int) (width / mapSpec.NUM_CONTINENTS);
+        int continentSpaceWidth = (int)(width / mapSpec.NUM_CONTINENTS);
 
         for (int i = 0; i < mapSpec.NUM_CONTINENTS; i++)
         {
             ContinentBlorp(height / 2, (continentSpaceWidth * i) + (continentSpaceWidth / 2));
         }
-
-        
     }
 
     private void ContinentBlorp(int row, int col, int cur = 0)
@@ -126,7 +124,7 @@ public class Board : MonoBehaviour
 
     public void VisionBlorp(Player p)
     {
-        Hex startHex; 
+        Hex startHex;
 
         foreach (Token t in p.pieces)
         {
@@ -134,7 +132,7 @@ public class Board : MonoBehaviour
             VisionBlorpHelper(startHex.row, startHex.column, t.sight, p);
         }
 
-        
+
     }
 
     private void VisionBlorpHelper(int row, int col, int range, Player p)
@@ -152,7 +150,7 @@ public class Board : MonoBehaviour
                 VisionBlorpHelper(hex.row, hex.column, range, p);
             }
         }
-        
+
     }
     #endregion
 
@@ -178,6 +176,8 @@ public class Board : MonoBehaviour
         moves.Remove(startHex);
 
         return moves;
+
+        //blorp(row, col, energy, (Hex h, int i) => true, (Hex h) => -1 * h.tileType.cost);
     }
 
     public List<Hex> GetMovesBlorp(Player p)
@@ -188,7 +188,7 @@ public class Board : MonoBehaviour
 
     private void GetMovesBlorpHelper(int row, int col, int energy, List<Hex> moves, Player p)
     {
-        
+
         energy -= board[row][col].tileType.cost;
 
         if (energy >= 0)
@@ -200,6 +200,27 @@ public class Board : MonoBehaviour
                 if (!moves.Contains(hex) && p.HasDiscoveredHex(hex))
                     GetMovesBlorpHelper(hex.row, hex.column, energy, moves, p);
             }
+    }
+
+    public HashSet<Hex> blorp(int row, int col, int i, Func<Hex, int, bool> condition, Func<Hex, int> deltaI, HashSet<Hex> hexes = null)
+    {
+        if (hexes == null) {
+            hexes = new HashSet<Hex>();
+        }
+
+        Hex curHex = GetTileAt(row, col);
+        hexes.Add(curHex);
+        i += deltaI(curHex);
+
+        foreach (Hex hex in GetAdjacentTiles(row, col))
+        {
+            if (condition(hex, i))
+            {
+                blorp(hex.row, hex.column, i, condition, deltaI, hexes);
+            }
+        }
+
+        return hexes;
     }
 
 

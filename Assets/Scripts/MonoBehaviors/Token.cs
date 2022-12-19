@@ -15,6 +15,8 @@ public class Token : MonoBehaviour
 
     public int sight { get => 2; } // how far this token can see
 
+    public Player owner { get; private set; }
+
     private MeshRenderer rendy;
 
     public void Awake()
@@ -24,10 +26,11 @@ public class Token : MonoBehaviour
         Show(false);
     }
 
-    public void SetColor(Color c)
+    public void AssignTo(Player p)
     {
-        color = c;
+        color = p.color;
         rendy.material.color = color;
+        owner = p;
     }
 
     public void Show(bool val = true)

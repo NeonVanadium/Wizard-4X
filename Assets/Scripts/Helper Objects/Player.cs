@@ -10,6 +10,8 @@ using UnityEngine;
 /// </summary>
 public class Player : ScriptableObject
 {
+    public int id { get; private set; }
+
     public InteractionMode interactionMode { get; set; } = InteractionMode.Move;
 
     public List<Token> pieces = new List<Token>(); // The pieces this player owns.
@@ -24,8 +26,28 @@ public class Player : ScriptableObject
 
     private HashSet<Hex> seenHexes = new HashSet<Hex>(); // the hexes the player can actively see
 
+    public bool[] metPlayers;
+
     public bool isHuman { get => !(this is AIPlayer); }
 
+    public void Setup(int myID, int numPlayers, Color color)
+    {
+        this.id = myID;
+        metPlayers = new bool[numPlayers];
+        metPlayers[id] = true;
+        this.color = color;
+    }
+
+    public void MeetPlayer(Player other)
+    {
+        metPlayers[other.id] = true;
+    }
+
+    public bool HasMetPlayer(Player other)
+    {
+        return metPlayers[other.id];
+    }
+    
     public void SwitchInteractionMode()
     {
         if (interactionMode == InteractionMode.Move) {
@@ -41,8 +63,13 @@ public class Player : ScriptableObject
     public void SetMainPiece(Unit unit)
     {
         mainPiece = unit;
-        unit.SetColor(this.color);
-        pieces.Add(unit);
+        AddPiece(unit);
+    }
+
+    public void AddPiece(Token t)
+    {
+        t.AssignTo(this);
+        pieces.Add(t);
     }
 
     public void StartTurn()

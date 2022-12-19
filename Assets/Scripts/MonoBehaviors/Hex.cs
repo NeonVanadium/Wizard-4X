@@ -26,7 +26,7 @@ public class Hex : MonoBehaviour
 
     public bool isLand { get => tileType.isLand; }
 
-    private HexClickDelegateHandler clickDelegate;
+    private HexDelegates hexDelegates;
 
     private Token moveOutline;
 
@@ -37,9 +37,9 @@ public class Hex : MonoBehaviour
         Discover(false);
     }
 
-    public void Init(HexClickDelegateHandler clickDelegate)
+    public void Init(HexDelegates hexDelegates)
     {
-        this.clickDelegate = clickDelegate;
+        this.hexDelegates = hexDelegates;
     }
 
     public void SetType(TileType tileType)
@@ -87,7 +87,7 @@ public class Hex : MonoBehaviour
 
     /// <summary>
     /// Sets the isActive flag of all the hex's
-    /// children to the given value.
+    /// children (rects) to the given value.
     /// </summary>
     private void Show(bool val)
     {
@@ -112,6 +112,7 @@ public class Hex : MonoBehaviour
     {
         foreach (Token t in tokens)
         {
+            hexDelegates.playerSighted(t.owner);
             t.Show(inPlayerSight);
         }
     }
@@ -150,7 +151,7 @@ public class Hex : MonoBehaviour
     #region Mouse Interaction
     void OnMouseDown()
     {
-        clickDelegate.onClick.Invoke(GetRow(), GetColumn());
+        hexDelegates.onClick(GetRow(), GetColumn());
     }
 
     private void OnMouseEnter()
