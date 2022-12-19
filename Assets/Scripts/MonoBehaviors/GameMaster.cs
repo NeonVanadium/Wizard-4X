@@ -59,7 +59,7 @@ public class GameMaster : MonoBehaviour
     {
         hexDelegates = new HexDelegates();
         hexDelegates.onClick += ValidateAndMakeMove;
-        hexDelegates.playerSighted += (Player p) => { if (!humanPlayer.HasMetPlayer(p)) { humanPlayer.MeetPlayer(p); uiManager.ShowPanel(); } };
+        hexDelegates.playerSighted += (Player p) => { if (!humanPlayer.HasMetPlayer(p)) { humanPlayer.MeetPlayer(p); uiManager.ShowGreeting(p); } };
         outlineManager = this.GetComponent<OutlineManager>();
         pieceFactory = this.GetComponent<PieceFactory>();
     }

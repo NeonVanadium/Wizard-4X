@@ -30,12 +30,16 @@ public class Player : ScriptableObject
 
     public bool isHuman { get => !(this is AIPlayer); }
 
+    private Language language = new Language(); // will be part of a culture later, in theory.
+
     public void Setup(int myID, int numPlayers, Color color)
     {
         this.id = myID;
         metPlayers = new bool[numPlayers];
         metPlayers[id] = true;
         this.color = color;
+        this.name = language.GenerateName();
+        
     }
 
     public void MeetPlayer(Player other)

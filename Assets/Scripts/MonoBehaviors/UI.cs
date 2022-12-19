@@ -11,8 +11,8 @@ public class UI : MonoBehaviour
         popUpPanel = GetComponentInChildren<PopUpPanel>();
     }
 
-    public void ShowPanel()
+    public void ShowGreeting(Player p)
     {
-        popUpPanel.Show(true);
+        popUpPanel.GreetingWindow(p);
     }
 }
