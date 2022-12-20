@@ -16,6 +16,8 @@ public class Board : MonoBehaviour
 
     private HexDelegates hexDelegates;
 
+    private OutlineManager outlineManager; // manages the highlights and outlines of all hexes
+
     private int HexWidth; // the width of one individual hex.
 
     private Hex[][] board; // NOTE: As a Hex board, this array is jagged. Odd rows are width, evens are width - 1.
@@ -23,6 +25,7 @@ public class Board : MonoBehaviour
     #region Initialization
 
     public void Setup(HexDelegates hexDelegates) {
+        outlineManager = GetComponentInParent<OutlineManager>();
         foreach (Transform child in hexPrefab.transform)
         {
             // there's for sure a better way to just get the first one
@@ -74,11 +77,9 @@ public class Board : MonoBehaviour
             {
                 float offset = (rowIsOdd) ? (0.5f * HexWidth) : 0; // for odd rows, offset by 1/2 of the tile width
 
-                board[row][col] = Instantiate(hexPrefab, new Vector3(col - offset, 0, row), Quaternion.identity);
+                board[row][col] = Instantiate(hexPrefab, new Vector3(col - offset, 0, row * HexWidth), Quaternion.identity);
 
                 board[row][col].Init(hexDelegates);
-
-                board[row][col].SetType(TileType.OCEAN);
             }
 
             rowIsOdd = !rowIsOdd;
@@ -120,6 +121,14 @@ public class Board : MonoBehaviour
     public void PlaceToken(Token t, int row, int col)
     {
         this.GetTileAt(row, col).SetObject(t);
+        if (!(t is Unit)) { // if structure. Temp
+            Hex curHex = GetTileAt(row, col);
+            outlineManager.MarkTerritoryForPlayer(curHex, t.owner);
+            foreach (Hex neighbor in GetAdjacentTiles(curHex))
+            {
+                outlineManager.MarkTerritoryForPlayer(neighbor, t.owner);
+            }
+        }
     }
 
     public void VisionBlorp(Player p)
@@ -131,8 +140,6 @@ public class Board : MonoBehaviour
             startHex = t.currentHex;
             VisionBlorpHelper(startHex.row, startHex.column, t.sight, p);
         }
-
-
     }
 
     private void VisionBlorpHelper(int row, int col, int range, Player p)
@@ -158,6 +165,7 @@ public class Board : MonoBehaviour
 
     public List<Hex> GetMovesBlorp(int row, int col, int energy, Player p)
     {
+        outlineManager.ClearMoveMarkers();
         List<Hex> moves = new List<Hex>();
 
         Hex startHex = board[row][col];
@@ -182,6 +190,7 @@ public class Board : MonoBehaviour
 
     public List<Hex> GetMovesBlorp(Player p)
     {
+        outlineManager.ClearMoveMarkers();
         Unit u = p.activePiece;
         return GetMovesBlorp(u.currentHex.row, u.currentHex.column, u.remainingEnergy, p);
     }
@@ -189,10 +198,18 @@ public class Board : MonoBehaviour
     private void GetMovesBlorpHelper(int row, int col, int energy, List<Hex> moves, Player p)
     {
 
-        energy -= board[row][col].tileType.cost;
+        Hex curHex = GetTileAt(row, col);
+
+        energy -= curHex.tileType.cost;
 
         if (energy >= 0)
-            moves.Add(board[row][col]);
+        {
+            moves.Add(curHex);
+            if (p.isHuman)
+            {
+                outlineManager.MarkMoveForPlayer(curHex, p);
+            }
+        }
 
         if (energy > 0)
             foreach (Hex hex in GetAdjacentTiles(row, col))

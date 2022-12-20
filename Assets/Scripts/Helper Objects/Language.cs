@@ -6,7 +6,7 @@ using UnityEngine;
 public class Language
 {
 
-    private static string[] consonants = new string[] { "p", "t", "k", "m", "n", "ng", "f", "th", "s", "kh", "h", "l", "r" };
+    private static string[] consonants = new string[] { "p", "t", "k", "m", "n", "ng", "f", "th", "s", "kh", "h", "l", "r", "y" };
     private static string[] vowels = new string[] { "i", "e", "a", "o", "u" };
 
     public Language()
@@ -16,14 +16,14 @@ public class Language
 
     public string GenerateName()
     {
-        int syllables = UnityEngine.Random.Range(1, 4);
+        int syllables = Random.Range(1, 4);
         StringBuilder name = new StringBuilder();
 
         for (int i = 0; i < syllables; i++)
         {   
             name.Append(GetConsonant());
             name.Append(GetVowel());
-            if (Random.Range(0, 1) == 1)
+            if (Random.Range(0, 2) == 1)
             {
                 name.Append(GetConsonant());
             }

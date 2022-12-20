@@ -8,40 +8,75 @@ public class OutlineManager : MonoBehaviour
     [SerializeField] Outline HexOutlinePrefab;
 
     private Color moveColor = Color.cyan; // color of the move markers
+    private Color hostileColor = Color.red;
 
-    private List<Outline> outlines = new List<Outline>();
+    private HashSet<Outline> activeMoveOutlines = new HashSet<Outline>();
 
-    public Outline CreateOutline(Color c)
+    /// <summary>
+    /// Creates an outline and returns it.
+    /// Used to create hexes.
+    /// </summary>
+    private Outline CreateOutline()
     {
-        Outline newOutline = Instantiate(HexOutlinePrefab);
-        newOutline.SetColor(c);
-        outlines.Add(newOutline);
-        return newOutline;
+        return Instantiate(HexOutlinePrefab);
     }
 
-    public Outline CreateOutline()
+    /// <summary>
+    /// Turns the given hex's move outline on,
+    /// coloring for the given player.
+    /// 
+    /// The player is relevant for determining 
+    /// the outline color of tokens are present.
+    /// 
+    /// (Friendly, hostile, etc)
+    /// </summary>
+    /// <param name="hex">The hex for which to enable the outline.</param>
+    /// <param name="p">The player for whom this is being toggled.</param>
+    public void MarkMoveForPlayer(Hex hex, Player p)
     {
-        return CreateOutline(moveColor);
-    }
-
-    public void ClearAllOutlines()
-    {
-        foreach (Outline o in outlines)
+        // if the hex has no move outline, give it one.
+        if (hex.moveOutline == null)
         {
-            Destroy(o.gameObject);
+            hex.moveOutline = CreateOutline();
+            hex.SetObject(hex.moveOutline, 0.3f);
         }
-        outlines.Clear();
+        
+        // are there non-allied tokens on this hex?
+        if (hex.HasTokensFromOwnerOtherThan(p))
+        {
+            hex.moveOutline.Show(Color.red);
+        }
+        else
+        {
+            hex.moveOutline.Show(moveColor);
+        }
+        
+        activeMoveOutlines.Add(hex.moveOutline);
     }
 
+    public void MarkTerritoryForPlayer(Hex hex, Player p)
+    {
+        // if the hex has no move outline, give it one.
+        if (hex.territoryOutline == null)
+        {
+            hex.territoryOutline = CreateOutline();
+            hex.SetObject(hex.territoryOutline, 0.2f);
+        }
+
+        hex.owner = p;
+        hex.territoryOutline.Show(p.color);
+    }
+
+    /// <summary>
+    /// Clears all of the move outlines in play.
+    /// </summary>
     public void ClearMoveMarkers()
     {
-        System.Predicate<Outline> pred = new System.Predicate<Outline>((Outline o) => o.color == moveColor);
-        foreach (Outline o in outlines)
+        foreach (Outline o in activeMoveOutlines)
         {
-            if (pred(o))
-                Destroy(o.gameObject);
+            o.Hide();
         }
-        outlines.RemoveAll(pred);
+        activeMoveOutlines.Clear();
     }
 
 }

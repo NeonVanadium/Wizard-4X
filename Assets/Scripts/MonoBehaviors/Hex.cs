@@ -28,7 +28,11 @@ public class Hex : MonoBehaviour
 
     private HexDelegates hexDelegates;
 
-    private Token moveOutline;
+    public Outline moveOutline;
+
+    public Outline territoryOutline;
+
+    public Player owner;
 
     #region Initialization
     void Awake()
@@ -40,6 +44,7 @@ public class Hex : MonoBehaviour
     public void Init(HexDelegates hexDelegates)
     {
         this.hexDelegates = hexDelegates;
+        SetType(TileType.OCEAN); // defaults to this for convenience.
     }
 
     public void SetType(TileType tileType)
@@ -67,9 +72,12 @@ public class Hex : MonoBehaviour
     /// </summary>
     /// <param name="obj">The game object to place.</param>
     /// <param name="y">Optional, the y-value to set the object.</param>
-    public void SetObject(MonoBehaviour obj, float y = 1.0f)
+    public void SetObject(MonoBehaviour obj, float y = 0.5f)
     {
-        obj.transform.position = new Vector3(this.transform.position.x, y, this.transform.position.z);
+
+        float baseY = this.tileType.height; //  the "top" of the tile
+
+        obj.transform.position = new Vector3(this.transform.position.x, baseY + y, this.transform.position.z);
 
         // is this a Token we're placing?
         if (obj is Token)
@@ -139,13 +147,21 @@ public class Hex : MonoBehaviour
         SetColor(tileType.color);
     }
 
+    /// <summary>
+    /// Removes the given token from 
+    /// this hex and sets its 
+    /// currentHex to null.
+    /// </summary>
+    /// <param name="t"></param>
     public void TakeOff(Token t)
     {
         if (tokens.Contains(t))
         {
             tokens.Remove(t);
+            t.currentHex = null;
         }
     }
+
     #endregion
 
     #region Mouse Interaction
@@ -198,6 +214,22 @@ public class Hex : MonoBehaviour
         {
             return (int) (rawVal - 0.5) + 1; // the 0th of an odd row would be at -0.5, so adjust
         }
+    }
+
+    /// <summary>
+    /// Returns true if any of the tokens
+    /// on this hex belong to a player other than
+    /// p. Used in the OutlineManager to determine
+    /// outline color of valid hex.
+    /// </summary>
+    public bool HasTokensFromOwnerOtherThan(Player p)
+    {
+        foreach (Token t in tokens)
+        {
+            if (t.owner != p)
+                return true;
+        }
+        return false;
     }
     #endregion
 }

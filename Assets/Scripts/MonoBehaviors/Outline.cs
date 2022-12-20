@@ -11,12 +11,24 @@ public class Outline : MonoBehaviour
     private void Awake()
     {
         rendy = GetComponent<LineRenderer>();
+        Hide();
     }
 
-    public void SetColor(Color c)
+    private void SetColor(Color c)
     {
         color = c;
         rendy.startColor = color;
         rendy.endColor = color;
+    }
+
+    public void Show(Color c)
+    {
+        rendy.enabled = true;
+        SetColor(c);
+    }
+
+    public void Hide()
+    {
+        rendy.enabled = false;
     }
 }

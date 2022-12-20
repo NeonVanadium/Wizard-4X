@@ -44,7 +44,10 @@ public class Player : ScriptableObject
 
     public void MeetPlayer(Player other)
     {
-        metPlayers[other.id] = true;
+        if (!metPlayers[other.id]) {
+            metPlayers[other.id] = true;
+            other.MeetPlayer(this);
+        }
     }
 
     public bool HasMetPlayer(Player other)

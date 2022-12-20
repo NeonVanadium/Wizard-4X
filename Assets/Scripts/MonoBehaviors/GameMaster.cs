@@ -27,8 +27,6 @@ public class GameMaster : MonoBehaviour
 
     private Board board;
 
-    private OutlineManager outlineManager;
-
     private PieceFactory pieceFactory;
 
     private HexDelegates hexDelegates;
@@ -59,8 +57,7 @@ public class GameMaster : MonoBehaviour
     {
         hexDelegates = new HexDelegates();
         hexDelegates.onClick += ValidateAndMakeMove;
-        hexDelegates.playerSighted += (Player p) => { if (!humanPlayer.HasMetPlayer(p)) { humanPlayer.MeetPlayer(p); uiManager.ShowGreeting(p); } };
-        outlineManager = this.GetComponent<OutlineManager>();
+        hexDelegates.playerSighted += MaybeMeetAndShowGreeting;
         pieceFactory = this.GetComponent<PieceFactory>();
     }
     private void SetupBoard()
@@ -154,12 +151,8 @@ public class GameMaster : MonoBehaviour
         if (activePlayer.activePiece.remainingEnergy >= TEMP_PLACE_COST)
         {
             Token structure = pieceFactory.Make(PieceType.TOWER);
-            board.PlaceToken(structure, row, col);
             activePlayer.AddPiece(structure);
-            foreach (Hex h in board.GetAdjacentTiles(row, col))
-            {
-                h.SetObject(outlineManager.CreateOutline(activePlayer.color), 0.5f);
-            }
+            board.PlaceToken(structure, row, col);
             activePlayer.activePiece.remainingEnergy -= TEMP_PLACE_COST;
         }
         else
@@ -252,22 +245,10 @@ public class GameMaster : MonoBehaviour
 
     private void GetAndMarkAvailableMoves()
     {
-        if (activePlayerAvailableHexes != null)
-        {
-            outlineManager.ClearMoveMarkers();
-        }
         activePlayerAvailableHexes = board.GetMovesBlorp(activePlayer);
         if (activePlayerAvailableHexes.Count == 0)
         {
             NextTurn(); // no moves found, pass to next
-        }
-        else if (IsHumanPlayerTurn())
-        {
-            // only mark on the player's turn.
-            foreach (Hex h in activePlayerAvailableHexes)
-            {
-                h.SetObject(outlineManager.CreateOutline(), 0.3f);
-            }
         }
     }
 
@@ -299,6 +280,27 @@ public class GameMaster : MonoBehaviour
     public void ChangePlayerInteractionMode()
     {
         humanPlayer.SwitchInteractionMode();
+    }
+
+    /// <summary>
+    /// Checks if the activePlayer and 
+    /// the seen player haven't met. If so,
+    /// and one of them is the human player,
+    /// shows the greeting dialogue.
+    /// </summary>
+    public void MaybeMeetAndShowGreeting(Player seen)
+    {
+        if (!activePlayer.HasMetPlayer(seen)) {
+            activePlayer.MeetPlayer(seen);
+            if (activePlayer.isHuman)
+            {
+                uiManager.ShowGreeting(seen);
+            }
+            else if (seen.isHuman)
+            {
+                uiManager.ShowGreeting(activePlayer);
+            }
+        }
     }
 
     #endregion
