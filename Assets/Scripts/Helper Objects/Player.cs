@@ -14,7 +14,7 @@ public class Player : ScriptableObject
 
     public InteractionMode interactionMode { get; set; } = InteractionMode.Move;
 
-    public List<Token> pieces = new List<Token>(); // The pieces this player owns.
+    private List<Token> pieces = new List<Token>(); // The pieces this player owns.
 
     public Unit mainPiece { get; private set; } // The player's main piece, "them" on the board.
 
@@ -31,6 +31,8 @@ public class Player : ScriptableObject
     public bool isHuman { get => !(this is AIPlayer); }
 
     private Language language = new Language(); // will be part of a culture later, in theory.
+
+    public bool inGame { get => mainPiece != null; }
 
     public void Setup(int myID, int numPlayers, Color color)
     {
@@ -67,6 +69,19 @@ public class Player : ScriptableObject
         Debug.Log($"Interaction mode changed to {interactionMode}");
     }
 
+    public void StartTurn()
+    {
+        foreach (Token piece in pieces)
+        {
+            if (piece is Unit)
+            {
+                ((Unit)piece).StartTurn();
+            }
+        }
+    }
+
+    #region Token related
+
     public void SetMainPiece(Unit unit)
     {
         mainPiece = unit;
@@ -79,17 +94,28 @@ public class Player : ScriptableObject
         pieces.Add(t);
     }
 
-    public void StartTurn()
+    public Token[] GetTokens()
     {
-        foreach (Token piece in pieces)
+        Token[] arr = new Token[pieces.Count]; 
+        pieces.CopyTo(arr);
+        return arr;
+    }
+
+    public void RemoveToken(Token t)
+    {
+        if (pieces.Contains(t))
         {
-            if (piece is Unit)
+            pieces.Remove(t);
+            if (t == mainPiece)
             {
-                ((Unit)piece).StartTurn();
+                mainPiece = null;
             }
         }
     }
 
+    #endregion
+
+    #region Hex Related
     public bool HasDiscoveredHex(Hex hex)
     {
         return discoveredHexes.Contains(hex);
@@ -125,6 +151,7 @@ public class Player : ScriptableObject
                 hex.SetInPlayerSight(false);
         seenHexes.Clear();
     }
+    #endregion
 }
 
 public enum InteractionMode

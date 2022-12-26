@@ -17,7 +17,7 @@ public class PopUpPanel : MonoBehaviour
         body = labels[1];
     }
 
-    private void Show(bool val)
+    public void Show(bool val)
     {
         this.gameObject.SetActive(val);
     }

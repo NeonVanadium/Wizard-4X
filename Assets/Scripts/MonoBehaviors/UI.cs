@@ -15,4 +15,9 @@ public class UI : MonoBehaviour
     {
         popUpPanel.GreetingWindow(p);
     }
+
+    public void CloseWindow()
+    {
+        popUpPanel.Show(false);
+    }
 }

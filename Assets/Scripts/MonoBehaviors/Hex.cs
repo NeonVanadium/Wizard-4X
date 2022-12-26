@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -20,7 +19,9 @@ public class Hex : MonoBehaviour
 
     public TileType tileType { get; private set; }
 
-    private  List<Token> tokens = new List<Token>(); // the tokens on this tile.
+    public Player owner; // the player who owns this tile.
+
+    public Token token; // the tokens on this tile.
 
     private bool inPlayerSight; // if this tile is actively visible by the human player. Used for rendering.
 
@@ -32,7 +33,7 @@ public class Hex : MonoBehaviour
 
     public Outline territoryOutline;
 
-    public Player owner;
+    
 
     #region Initialization
     void Awake()
@@ -85,11 +86,11 @@ public class Hex : MonoBehaviour
             Token t = (Token)obj;
             if (t.currentHex)
             {
-                t.currentHex.TakeOff(t);
+                t.currentHex.RemoveToken();
             }
             t.currentHex = this;
             t.Show(inPlayerSight);
-            this.tokens.Add(t);
+            this.token = t;
         }
     }
 
@@ -110,18 +111,18 @@ public class Hex : MonoBehaviour
     {
         Discover();
         inPlayerSight = val;
-        ShowHideTokens();
+        ShowHideToken();
     }
 
     /// <summary>
     /// Shows or hides this hex's tokens, based on the visible flag.
     /// </summary>
-    private void ShowHideTokens()
+    private void ShowHideToken()
     {
-        foreach (Token t in tokens)
+        if (token)
         {
-            hexDelegates.playerSighted(t.owner);
-            t.Show(inPlayerSight);
+            hexDelegates.playerSighted(token.owner);
+            token.Show(inPlayerSight);
         }
     }
 
@@ -153,12 +154,12 @@ public class Hex : MonoBehaviour
     /// currentHex to null.
     /// </summary>
     /// <param name="t"></param>
-    public void TakeOff(Token t)
+    public void RemoveToken()
     {
-        if (tokens.Contains(t))
+        if (token)
         {
-            tokens.Remove(t);
-            t.currentHex = null;
+            token.currentHex = null;
+            token = null;
         }
     }
 
@@ -217,19 +218,15 @@ public class Hex : MonoBehaviour
     }
 
     /// <summary>
-    /// Returns true if any of the tokens
-    /// on this hex belong to a player other than
-    /// p. Used in the OutlineManager to determine
-    /// outline color of valid hex.
+    /// Convenience method used for determining whether
+    /// a tile has a valid target.
+    /// 
+    /// True if there is an owner but
+    /// that owner is not the given player.
     /// </summary>
-    public bool HasTokensFromOwnerOtherThan(Player p)
+    public bool HasTokenFromPlayerBesides(Player p)
     {
-        foreach (Token t in tokens)
-        {
-            if (t.owner != p)
-                return true;
-        }
-        return false;
+        return token && token.owner != p;
     }
     #endregion
 }

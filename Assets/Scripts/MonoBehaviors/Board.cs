@@ -135,7 +135,7 @@ public class Board : MonoBehaviour
     {
         Hex startHex;
 
-        foreach (Token t in p.pieces)
+        foreach (Token t in p.GetTokens())
         {
             startHex = t.currentHex;
             VisionBlorpHelper(startHex.row, startHex.column, t.sight, p);

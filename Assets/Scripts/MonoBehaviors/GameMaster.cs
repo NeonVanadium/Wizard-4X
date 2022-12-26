@@ -33,7 +33,9 @@ public class GameMaster : MonoBehaviour
 
     [SerializeField] private UI uiManager;
 
-    private Player[] players;
+    private List<Player> players;
+
+    private int playersRemaining;
 
     private int turnIndex = -1;
 
@@ -70,10 +72,11 @@ public class GameMaster : MonoBehaviour
 
     private void SetupPlayers()
     {
-        players = new Player[numPlayers];
+        players = new List<Player>();
+        playersRemaining = numPlayers;
         for (int i = 0; i < numPlayers; i++)
         {
-            players[i] = (i == 0) ? ScriptableObject.CreateInstance<Player>() : ScriptableObject.CreateInstance<AIPlayer>();
+            players.Add((i == 0) ? ScriptableObject.CreateInstance<Player>() : ScriptableObject.CreateInstance<AIPlayer>());
             players[i].Setup(i, numPlayers, UnityEngine.Random.ColorHSV());
             players[i].SetMainPiece((Unit) pieceFactory.Make(PieceType.WIZARD));
             board.PlaceToken(players[i].mainPiece, boardHeight / 2, i * (boardWidth / (numPlayers + 1)));
@@ -111,7 +114,15 @@ public class GameMaster : MonoBehaviour
             // Valid. Perform the action.
             if (activePlayer.interactionMode == InteractionMode.Move)
             {
-                MoveTokenAction(row, col);
+                Hex tile = board.GetTileAt(row, col);
+                if (tile.token != null && tile.HasTokenFromPlayerBesides(activePlayer))
+                {
+                    CombatAction(tile);
+                }
+                else
+                {
+                    MoveTokenAction(row, col);
+                }
             }
             else
             {
@@ -132,6 +143,13 @@ public class GameMaster : MonoBehaviour
                 GetAndMarkAvailableMoves();
             }
         }
+    }
+
+    private void CombatAction(Hex tile)
+    {
+        // also very temp.
+        tile.token.Damage(10);
+        activePlayer.activePiece.remainingEnergy -= 2;
     }
 
     private void MoveTokenAction(int row, int col)
@@ -216,18 +234,84 @@ public class GameMaster : MonoBehaviour
     {
         humanPlayer.ResetSeen();
 
-        turnIndex = (turnIndex + 1) % players.Length;
+        if (!IncrementIndexAndCheckGameOver())
+        {
+            StartTurn();
 
+            if (!IsHumanPlayerTurn())
+            {
+                HaveAITakeTurn();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Helper for next turn that
+    /// increments the turn index,
+    /// removing the would-be
+    /// next player if they are no
+    /// longer in the game.
+    /// 
+    /// If the game is over (one player
+    /// remains, returns true.
+    /// 
+    /// Otherwise returns false.
+    /// </summary>
+    private bool IncrementIndexAndCheckGameOver()
+    {
+        if (!IsGameOver())
+        {
+            while (players.Count > 1)
+            {
+
+                turnIndex = (turnIndex + 1) % players.Count;
+                if (!RemoveIfEliminated(activePlayer))
+                {
+                    break;
+                }
+
+            }
+        }
+
+        return IsGameOver();
+    }
+
+    /// <summary>
+    /// Checks all the conditions for game-over.
+    /// 
+    /// Returns true if any are met, and false 
+    /// otherwise.
+    /// </summary>
+    /// <returns></returns>
+    private bool IsGameOver()
+    {
+        return !humanPlayer.inGame || players.Count <= 1;
+    }
+
+    /// <summary>
+    /// Helper for NextTurn. Calls the methods
+    /// to set the active player and the board
+    /// up for their turn.
+    /// </summary>
+    private void StartTurn()
+    {
         activePlayer.StartTurn(); // Sets up this unit for their turn.
 
         board.VisionBlorp(activePlayer);
 
         GetAndMarkAvailableMoves();
+    }
 
-        if (!IsHumanPlayerTurn())
-        {
-            HaveAITakeTurn();
-        }
+    /// <summary>
+    /// Checks if the player is still in the game.
+    /// If not, removes them and returns true.
+    /// Else, returns false.
+    /// </summary>
+    private bool RemoveIfEliminated(Player p)
+    {
+        if (p.inGame) return false;
+        players.Remove(p);
+        return true;
     }
 
     /// <summary>

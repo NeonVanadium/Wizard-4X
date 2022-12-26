@@ -41,8 +41,8 @@ public class OutlineManager : MonoBehaviour
             hex.SetObject(hex.moveOutline, 0.3f);
         }
         
-        // are there non-allied tokens on this hex?
-        if (hex.HasTokensFromOwnerOtherThan(p))
+        // is there a non-allied token on this hex?
+        if (hex.HasTokenFromPlayerBesides(p))
         {
             hex.moveOutline.Show(Color.red);
         }
